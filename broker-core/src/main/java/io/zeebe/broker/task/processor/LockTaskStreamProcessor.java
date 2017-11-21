@@ -53,7 +53,7 @@ import org.slf4j.Logger;
 
 public class LockTaskStreamProcessor implements StreamProcessor, EventProcessor
 {
-    public final static Logger LOG = Loggers.SYSTEM_LOGGER;
+    public static final Logger LOG = Loggers.SYSTEM_LOGGER;
     protected final BrokerEventMetadata targetEventMetadata = new BrokerEventMetadata();
 
     protected final NoopSnapshotSupport noopSnapshotSupport = new NoopSnapshotSupport();
@@ -220,7 +220,10 @@ public class LockTaskStreamProcessor implements StreamProcessor, EventProcessor
                 seenSubscriptions += 1;
             }
         }
-        LOG
+        else
+        {
+            LOG.error("No subscriptions credits available");
+        }
         return nextSubscription;
     }
 
@@ -280,7 +283,6 @@ public class LockTaskStreamProcessor implements StreamProcessor, EventProcessor
             lockSubscription = getNextAvailableSubscription();
             if (lockSubscription != null)
             {
-                LOG.warn("Using subscription {} for locked task", lockSubscription);
                 final long lockTimeout = ClockUtil.getCurrentTimeInMillis() + lockSubscription.getLockDuration();
 
                 taskEvent
@@ -289,10 +291,6 @@ public class LockTaskStreamProcessor implements StreamProcessor, EventProcessor
                     .setLockOwner(lockSubscription.getLockOwner());
 
                 hasLockedTask = true;
-            }
-            else
-            {
-                LOG.error("No subscription found to send locked task");
             }
         }
     }
