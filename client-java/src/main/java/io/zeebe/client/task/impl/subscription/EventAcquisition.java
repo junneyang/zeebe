@@ -67,7 +67,7 @@ public class EventAcquisition<T extends EventSubscription<T>> implements Subscri
         }
         else
         {
-            LOGGER.debug(name() + ": Ignoring event " + event.toString() + " for subscription " + subscriberKey);
+            //LOGGER.debug(name() + ": Ignoring event " + event.toString() + " for subscription " + subscriberKey);
             return true; // ignoring the event is success; don't want to retry it later
         }
     }

@@ -12,10 +12,6 @@
         <zeebe:taskHeaders>
           <zeebe:header key="reservationTime" value="PT15M" />
         </zeebe:taskHeaders>
-        <zeebe:ioMapping>
-          <zeebe:input source="$.orderItems" target="$.orderItems" />
-          <zeebe:output source="$.orderStatus" target="$.orderStatus" />
-        </zeebe:ioMapping>
       </bpmn:extensionElements>
       <bpmn:incoming>SequenceFlow_05suiqb</bpmn:incoming>
       <bpmn:outgoing>SequenceFlow_17kmq07</bpmn:outgoing>

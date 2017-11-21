@@ -24,6 +24,7 @@ import static io.zeebe.util.EnsureUtil.ensureNotNull;
 
 import java.util.concurrent.CompletableFuture;
 
+import io.zeebe.broker.Loggers;
 import org.agrona.DirectBuffer;
 
 import io.zeebe.broker.logstreams.processor.MetadataFilter;
@@ -48,9 +49,11 @@ import io.zeebe.protocol.impl.BrokerEventMetadata;
 import io.zeebe.util.DeferredCommandContext;
 import io.zeebe.util.buffer.BufferUtil;
 import io.zeebe.util.time.ClockUtil;
+import org.slf4j.Logger;
 
 public class LockTaskStreamProcessor implements StreamProcessor, EventProcessor
 {
+    public final static Logger LOG = Loggers.SYSTEM_LOGGER;
     protected final BrokerEventMetadata targetEventMetadata = new BrokerEventMetadata();
 
     protected final NoopSnapshotSupport noopSnapshotSupport = new NoopSnapshotSupport();
@@ -217,6 +220,7 @@ public class LockTaskStreamProcessor implements StreamProcessor, EventProcessor
                 seenSubscriptions += 1;
             }
         }
+        LOG
         return nextSubscription;
     }
 
@@ -276,6 +280,7 @@ public class LockTaskStreamProcessor implements StreamProcessor, EventProcessor
             lockSubscription = getNextAvailableSubscription();
             if (lockSubscription != null)
             {
+                LOG.warn("Using subscription {} for locked task", lockSubscription);
                 final long lockTimeout = ClockUtil.getCurrentTimeInMillis() + lockSubscription.getLockDuration();
 
                 taskEvent
@@ -284,6 +289,10 @@ public class LockTaskStreamProcessor implements StreamProcessor, EventProcessor
                     .setLockOwner(lockSubscription.getLockOwner());
 
                 hasLockedTask = true;
+            }
+            else
+            {
+                LOG.error("No subscription found to send locked task");
             }
         }
     }
