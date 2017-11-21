@@ -95,7 +95,7 @@ public class CreateWorkflowInstanceTest
             .register();
 
         // when
-        for (int i = 0; i < 10_000_000; i++)
+        for (int i = 0; i < 1_000_000; i++)
         {
             final WorkflowInstanceEvent workflowInstance = clientRule.workflows()
                                                                      .create(clientRule.getDefaultTopicName())

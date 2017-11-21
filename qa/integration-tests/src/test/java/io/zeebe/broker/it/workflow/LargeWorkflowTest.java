@@ -100,7 +100,7 @@ public class LargeWorkflowTest
         final WorkflowsClient workflowService = clientRule.workflows();
 
         // when
-        for (int i = 0; i < CREATION_TIMES; i++)
+        for (int i = 0; i < 100_000; i++)
         {
             workflowService.create(clientRule.getDefaultTopic())
                            .bpmnProcessId("extended-order-process")
