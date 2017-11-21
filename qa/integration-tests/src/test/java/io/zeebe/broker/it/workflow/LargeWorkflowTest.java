@@ -20,17 +20,22 @@ import java.io.InputStream;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.BooleanSupplier;
+import java.util.function.Supplier;
 import java.util.regex.Pattern;
 
 import io.zeebe.broker.it.ClientRule;
 import io.zeebe.broker.it.EmbeddedBrokerRule;
 import io.zeebe.broker.it.startup.BrokerRestartTest;
 import io.zeebe.client.WorkflowsClient;
-import io.zeebe.client.task.TaskSubscription;
+import io.zeebe.client.event.WorkflowInstanceEvent;
 import io.zeebe.test.util.TestFileUtil;
-import io.zeebe.test.util.TestUtil;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -56,7 +61,7 @@ public class LargeWorkflowTest
     //    @Rule
     //    public ExpectedException exception = ExpectedException.none();
 
-    protected static InputStream brokerConfig(String path)
+    protected static InputStream brokerConfig(final String path)
     {
         final String canonicallySeparatedPath = path.replaceAll(Pattern.quote(File.separator), "/");
 
@@ -94,6 +99,80 @@ public class LargeWorkflowTest
                 System.out.println("Iteration: " + i);
             }
         }
+    }
+
+    @Test
+    public void shouldCreateBunchOfWorkflowInstancesAsync()
+    {
+        final WorkflowsClient workflowService = clientRule.workflows();
+
+        final int batchSize = 1000;
+        final List<Future<WorkflowInstanceEvent>> requests = new ArrayList<>(batchSize);
+        final AtomicLong finished = new AtomicLong(0);
+        final AtomicLong failed = new AtomicLong(0);
+
+        final Supplier<Void> pollRequests = () ->
+        {
+            final Iterator<Future<WorkflowInstanceEvent>> iterator = requests.iterator();
+            while (iterator.hasNext())
+            {
+                final Future<WorkflowInstanceEvent> request = iterator.next();
+                if (request.isDone())
+                {
+                    iterator.remove();
+                    finished.incrementAndGet();
+                    try
+                    {
+                        final WorkflowInstanceEvent workflowInstanceEvent = request.get();
+                        if (!workflowInstanceEvent.getState().equals("WORKFLOW_INSTANCE_CREATED"))
+                        {
+                            failed.incrementAndGet();
+                            System.out.println("Failed to create workflow instance: " + workflowInstanceEvent);
+                        }
+                    }
+                    catch (final Exception e)
+                    {
+                        failed.incrementAndGet();
+                        System.out.println("Failed to create workflow instance: " + e.getMessage());
+                        e.printStackTrace();
+                    }
+
+                    if (finished.get() % 1000 == 0)
+                    {
+                        System.out.println("Finished requests: " + finished);
+                    }
+                }
+            }
+
+            return null;
+        };
+
+        final BooleanSupplier enoughRequests = () -> requests.size() + finished.get() == CREATION_TIMES;
+
+        while (!enoughRequests.getAsBoolean())
+        {
+            while (!enoughRequests.getAsBoolean() && requests.size() < batchSize)
+            {
+                final Future<WorkflowInstanceEvent> request = workflowService.create(clientRule.getDefaultTopic())
+                                                                             .bpmnProcessId("extended-order-process")
+                                                                             .latestVersion()
+                                                                             .payload(
+                                                                           "{ \"orderId\": 31243, \"orderStatus\": \"NEW\", \"orderItems\": [435, 182, 376] }")
+                                                                             .executeAsync();
+
+                requests.add(request);
+            }
+
+            pollRequests.get();
+
+        }
+
+        while (!requests.isEmpty())
+        {
+            pollRequests.get();
+        }
+
+        System.out.println("Done (finished: " + finished + ", failed: " + failed + ")");
     }
 
     @Test
