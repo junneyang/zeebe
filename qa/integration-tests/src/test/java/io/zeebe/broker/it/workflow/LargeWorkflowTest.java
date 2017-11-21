@@ -113,7 +113,7 @@ public class LargeWorkflowTest
                       tasksClient.complete(task)
                                  .payload("{ \"orderStatus\": \"RESERVED\" }")
                                  .execute();
-                      if (c % 1000 == 0)
+                      if (c % 100 == 0)
                       {
                           System.out.println("Completed: " + c);
                       }
