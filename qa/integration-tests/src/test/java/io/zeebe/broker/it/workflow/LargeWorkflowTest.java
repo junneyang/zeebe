@@ -49,7 +49,7 @@ public class LargeWorkflowTest
     public static final int CREATION_TIMES = 10_000_000;
     public static final URL PATH = LargeWorkflowTest.class.getResource("");
 
-    public EmbeddedBrokerRule brokerRule = new EmbeddedBrokerRule();
+    public EmbeddedBrokerRule brokerRule = new EmbeddedBrokerRule(() -> brokerConfig(PATH.getPath()));
     public ClientRule clientRule = new ClientRule();
     //    public TopicEventRecorder eventRecorder = new TopicEventRecorder(clientRule);
 
